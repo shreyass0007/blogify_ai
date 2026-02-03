@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "@/lib/api";
-import MDEditor from "@uiw/react-md-editor";
+import MDEditor, { commands } from "@uiw/react-md-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +38,11 @@ const BlogEditor = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [showSEOPanel, setShowSEOPanel] = useState(false);
+  const [featuredImage, setFeaturedImage] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const contentFileInputRef = useRef<HTMLInputElement>(null);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
 
@@ -53,6 +58,7 @@ const BlogEditor = () => {
       setTitle(data.title);
       setContent(data.content);
       setTags(data.tags || []);
+      setFeaturedImage(data.image || "");
     } catch (error) {
       toast({ title: "Failed to load post", variant: "destructive" });
     }
@@ -76,7 +82,7 @@ const BlogEditor = () => {
     }
     setIsSaving(true);
     try {
-      const postData = { title, content, tags, status: 'draft' };
+      const postData = { title, content, tags, status: 'draft', image: featuredImage };
       if (isEditing) {
         await api.put(`/posts/${postId}`, postData);
       } else {
@@ -89,7 +95,78 @@ const BlogEditor = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [title, content, tags, isEditing, postId, toast, navigate]);
+  }, [title, content, tags, featuredImage, isEditing, postId, toast, navigate]);
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Image must be under 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const { data } = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setFeaturedImage(`http://localhost:5000${data.url}`);
+      toast({ title: "Image uploaded!" });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Could not upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleContentImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Image must be under 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const loadingToast = toast({
+      title: "Uploading image...",
+      description: "Please wait",
+    });
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const { data } = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const imageUrl = `http://localhost:5000${data.url}`;
+      setContent((prev) => prev + `\n\n![Image](${imageUrl})\n\n`);
+      toast({ title: "Image inserted!" });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Could not upload image",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handlePublish = useCallback(async () => {
     if (!title.trim()) {
@@ -103,7 +180,7 @@ const BlogEditor = () => {
 
     setIsPublishing(true);
     try {
-      const postData = { title, content, tags, status: 'published' };
+      const postData = { title, content, tags, status: 'published', image: featuredImage };
       if (isEditing) {
         await api.put(`/posts/${postId}`, postData);
       } else {
@@ -119,7 +196,7 @@ const BlogEditor = () => {
     } finally {
       setIsPublishing(false);
     }
-  }, [title, content, tags, isEditing, postId, toast, navigate]);
+  }, [title, content, tags, featuredImage, isEditing, postId, toast, navigate]);
 
   const handleAIInsert = (text: string) => {
     setContent((prev) => prev + "\n\n" + text);
@@ -128,6 +205,18 @@ const BlogEditor = () => {
       title: "AI content added",
       description: "The generated content has been inserted.",
     });
+  };
+
+  const imageUploadCommand = {
+    name: 'image',
+    keyCommand: 'image',
+    buttonProps: { 'aria-label': 'Insert Image' },
+    icon: (
+      <ImageIcon className="w-3 h-3" />
+    ),
+    execute: () => {
+      contentFileInputRef.current?.click();
+    },
   };
 
   return (
@@ -161,6 +250,14 @@ const BlogEditor = () => {
                 <Eye className="w-4 h-4 mr-2" />
                 {showPreview ? "Edit" : "Preview"}
               </Button>
+              {/* Hidden Input for Content Image */}
+              <input
+                type="file"
+                ref={contentFileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleContentImageUpload}
+              />
               <Button
                 variant="ghost"
                 size="sm"
@@ -267,14 +364,48 @@ const BlogEditor = () => {
             </div>
 
             {/* Featured Image */}
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-accent/50 transition-colors cursor-pointer">
-              <ImageIcon className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-1">
-                Click to upload a featured image
-              </p>
-              <p className="text-xs text-muted-foreground/60">
-                PNG, JPG up to 5MB
-              </p>
+            <div
+              className="border-2 border-dashed border-border rounded-lg text-center hover:border-accent/50 transition-colors cursor-pointer overflow-hidden group relative"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+
+              {featuredImage ? (
+                <div className="relative h-64 w-full">
+                  <img src={featuredImage} alt="Featured" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p className="text-white font-medium flex items-center">
+                      <ImageIcon className="w-5 h-5 mr-2" />
+                      Change Image
+                    </p>
+                  </div>
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <Loader2 className="w-8 h-8 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-8">
+                  {isUploading ? (
+                    <Loader2 className="w-10 h-10 text-accent mx-auto mb-3 animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  )}
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {isUploading ? "Uploading..." : "Click to upload a featured image"}
+                  </p>
+                  <p className="text-xs text-muted-foreground/60">
+                    PNG, JPG up to 5MB
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Editor */}
@@ -290,6 +421,10 @@ const BlogEditor = () => {
                   height={500}
                   preview="edit"
                   className="!border-border"
+                  commands={[
+                    ...commands.getCommands().filter((cmd) => cmd.name !== "image"),
+                    imageUploadCommand,
+                  ]}
                 />
               )}
             </div>

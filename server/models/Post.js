@@ -8,7 +8,11 @@ const postSchema = new mongoose.Schema({
     },
     content: {
         type: String,
-        required: true
+        default: ''
+    },
+    image: {
+        type: String,
+        default: ''
     },
     author: {
         type: mongoose.Schema.Types.ObjectId,
@@ -42,9 +46,8 @@ const postSchema = new mongoose.Schema({
     }
 });
 
-postSchema.pre('save', function (next) {
+postSchema.pre('save', async function () {
     this.updatedAt = new Date();
-    next();
 });
 
 const Post = mongoose.model('Post', postSchema);

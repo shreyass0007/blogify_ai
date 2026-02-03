@@ -2,8 +2,10 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CTASection = () => {
+  const { isAuthenticated } = useAuth();
   return (
     <section className="py-24 bg-gradient-hero relative overflow-hidden">
       {/* Background decoration */}
@@ -26,16 +28,16 @@ const CTASection = () => {
           <h2 className="text-3xl md:text-5xl font-serif font-bold text-primary-foreground mb-6">
             Ready to Transform Your Blogging?
           </h2>
-          
+
           <p className="text-lg text-primary-foreground/70 mb-10 max-w-xl mx-auto">
-            Join thousands of creators who are already using BlogifyAI to write better content, 
+            Join thousands of creators who are already using BlogifyAI to write better content,
             grow their audience, and earn more from their expertise.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="hero" size="xl" asChild>
-              <Link to="/register">
-                Start Writing Free
+              <Link to={isAuthenticated ? "/editor" : "/register"}>
+                {isAuthenticated ? "Start Writing" : "Start Writing Free"}
                 <ArrowRight className="w-5 h-5 ml-1" />
               </Link>
             </Button>

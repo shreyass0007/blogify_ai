@@ -1,109 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { Search, Clock, Eye, Heart, ArrowRight, Crown } from "lucide-react";
+import { Search, Clock, Eye, Heart, ArrowRight, Crown, Loader2 } from "lucide-react";
+import api from "@/lib/api";
 
-const mockPosts = [
-  {
-    id: "1",
-    title: "The Complete Guide to AI-Powered Content Creation",
-    excerpt: "Discover how AI tools are transforming the way we write, edit, and publish content in the digital age.",
-    author: "Sarah Chen",
-    authorAvatar: "S",
-    date: "Jan 24, 2026",
-    readTime: "8 min read",
-    views: 12500,
-    likes: 342,
-    tags: ["AI", "Content", "Writing"],
-    isPremium: true,
-    coverColor: "from-purple-500 to-pink-500",
-  },
-  {
-    id: "2",
-    title: "SEO Best Practices for 2026: What Actually Works",
-    excerpt: "Forget outdated tactics. Here's what Google actually rewards in 2026 and how to rank higher.",
-    author: "Mike Johnson",
-    authorAvatar: "M",
-    date: "Jan 22, 2026",
-    readTime: "12 min read",
-    views: 8900,
-    likes: 256,
-    tags: ["SEO", "Marketing", "Growth"],
-    isPremium: false,
-    coverColor: "from-blue-500 to-cyan-500",
-  },
-  {
-    id: "3",
-    title: "Building a Successful Newsletter: From 0 to 50K Subscribers",
-    excerpt: "A step-by-step breakdown of how I grew my newsletter to 50,000 subscribers in just 18 months.",
-    author: "Emma Davis",
-    authorAvatar: "E",
-    date: "Jan 20, 2026",
-    readTime: "15 min read",
-    views: 15200,
-    likes: 489,
-    tags: ["Newsletter", "Growth", "Email"],
-    isPremium: true,
-    coverColor: "from-orange-500 to-red-500",
-  },
-  {
-    id: "4",
-    title: "Monetizing Your Blog: 7 Revenue Streams That Work",
-    excerpt: "Turn your passion project into a profitable business with these proven monetization strategies.",
-    author: "Alex Rivera",
-    authorAvatar: "A",
-    date: "Jan 18, 2026",
-    readTime: "10 min read",
-    views: 7300,
-    likes: 198,
-    tags: ["Monetization", "Business", "Strategy"],
-    isPremium: false,
-    coverColor: "from-green-500 to-emerald-500",
-  },
-  {
-    id: "5",
-    title: "The Psychology of Viral Content: What Makes People Share",
-    excerpt: "Understanding the emotional triggers that make content irresistible to share on social media.",
-    author: "Lisa Park",
-    authorAvatar: "L",
-    date: "Jan 15, 2026",
-    readTime: "7 min read",
-    views: 21000,
-    likes: 612,
-    tags: ["Psychology", "Viral", "Social Media"],
-    isPremium: false,
-    coverColor: "from-indigo-500 to-purple-500",
-  },
-  {
-    id: "6",
-    title: "Remote Work and Productivity: Finding Your Flow",
-    excerpt: "Practical tips for staying productive, creative, and mentally healthy while working from home.",
-    author: "Tom Wilson",
-    authorAvatar: "T",
-    date: "Jan 12, 2026",
-    readTime: "9 min read",
-    views: 5600,
-    likes: 145,
-    tags: ["Productivity", "Remote Work", "Lifestyle"],
-    isPremium: false,
-    coverColor: "from-teal-500 to-cyan-500",
-  },
+interface Post {
+  _id: string;
+  title: string;
+  content: string;
+  author: { username: string } | string;
+  createdAt: string;
+  views: number;
+  likes: number;
+  tags: string[];
+  status: string;
+  image?: string;
+}
+
+const gradientColors = [
+  "from-purple-500 to-pink-500",
+  "from-blue-500 to-cyan-500",
+  "from-orange-500 to-red-500",
+  "from-green-500 to-emerald-500",
+  "from-indigo-500 to-purple-500",
+  "from-teal-500 to-cyan-500",
 ];
 
-const popularTags = ["All", "AI", "SEO", "Marketing", "Growth", "Productivity", "Business"];
+const popularTags = ["All", "AI", "Tech", "Marketing", "Growth", "Productivity", "Business"];
 
 const Blog = () => {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState("All");
 
-  const filteredPosts = mockPosts.filter((post) => {
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const { data } = await api.get('/posts/public');
+        setPosts(data);
+      } catch (error) {
+        console.error('Failed to fetch posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPosts();
+  }, []);
+
+  const filteredPosts = posts.filter((post) => {
     const matchesSearch =
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+      post.content.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTag = selectedTag === "All" || post.tags.includes(selectedTag);
     return matchesSearch && matchesTag;
   });
@@ -111,6 +63,30 @@ const Blog = () => {
   const formatNumber = (num: number) => {
     if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
     return num.toString();
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const getReadTime = (content: string) => {
+    const words = content.split(/\s+/).length;
+    const minutes = Math.ceil(words / 200);
+    return `${minutes} min read`;
+  };
+
+  const getAuthorName = (author: Post['author']) => {
+    if (typeof author === 'string') return 'Unknown';
+    return author?.username || 'Unknown';
+  };
+
+  const getAuthorInitial = (author: Post['author']) => {
+    const name = getAuthorName(author);
+    return name.charAt(0).toUpperCase();
   };
 
   return (
@@ -154,11 +130,10 @@ const Blog = () => {
               <button
                 key={tag}
                 onClick={() => setSelectedTag(tag)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  selectedTag === tag
-                    ? "bg-accent text-accent-foreground"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                }`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedTag === tag
+                  ? "bg-accent text-accent-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
               >
                 {tag}
               </button>
@@ -166,82 +141,96 @@ const Blog = () => {
           </div>
 
           {/* Posts Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPosts.map((post, index) => (
-              <motion.article
-                key={post.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="group bg-card rounded-2xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-              >
-                {/* Cover */}
-                <div className={`h-48 bg-gradient-to-br ${post.coverColor} relative`}>
-                  {post.isPremium && (
-                    <div className="absolute top-4 right-4">
-                      <span className="badge-premium">
-                        <Crown className="w-3 h-3" />
-                        Premium
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {post.tags.slice(0, 2).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-accent" />
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">No posts found.</p>
+              <p className="text-sm text-muted-foreground mt-2">Be the first to publish!</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPosts.map((post, index) => (
+                <motion.article
+                  key={post._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group bg-card rounded-2xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                >
+                  {/* Cover */}
+                  <div className={`h-48 relative overflow-hidden ${!post.image && gradientColors[index % gradientColors.length]}`}>
+                    {post.image ? (
+                      <img
+                        src={post.image.startsWith('http') ? post.image : `http://localhost:5000${post.image}`}
+                        alt={post.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className={`w-full h-full bg-gradient-to-br ${gradientColors[index % gradientColors.length]}`} />
+                    )}
                   </div>
 
-                  {/* Title */}
-                  <h2 className="font-serif text-xl font-bold text-foreground mb-2 line-clamp-2 group-hover:text-accent transition-colors">
-                    <Link to={`/blog/${post.id}`}>{post.title}</Link>
-                  </h2>
-
-                  {/* Excerpt */}
-                  <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-                    {post.excerpt}
-                  </p>
-
-                  {/* Meta */}
-                  <div className="flex items-center justify-between pt-4 border-t border-border">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
-                        {post.authorAvatar}
+                  {/* Content */}
+                  <div className="p-6">
+                    {/* Tags */}
+                    {post.tags && post.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {post.tags.slice(0, 2).map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">{post.author}</p>
-                        <p className="text-xs text-muted-foreground">{post.date}</p>
+                    )}
+
+                    {/* Title */}
+                    <h2 className="font-serif text-xl font-bold text-foreground mb-2 line-clamp-2 group-hover:text-accent transition-colors">
+                      <Link to={`/blog/${post._id}`}>{post.title}</Link>
+                    </h2>
+
+                    {/* Excerpt */}
+                    <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+                      {post.content.slice(0, 150)}...
+                    </p>
+
+                    {/* Meta */}
+                    <div className="flex items-center justify-between pt-4 border-t border-border">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
+                          {getAuthorInitial(post.author)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{getAuthorName(post.author)}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(post.createdAt)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 text-muted-foreground text-xs">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {getReadTime(post.content)}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-muted-foreground text-xs">
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border text-muted-foreground text-xs">
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {post.readTime}
+                        <Eye className="w-3 h-3" />
+                        {formatNumber(post.views || 0)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Heart className="w-3 h-3" />
+                        {formatNumber(post.likes || 0)}
                       </span>
                     </div>
                   </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border text-muted-foreground text-xs">
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      {formatNumber(post.views)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Heart className="w-3 h-3" />
-                      {formatNumber(post.likes)}
-                    </span>
-                  </div>
-                </div>
-              </motion.article>
-            ))}
-          </div>
+                </motion.article>
+              ))}
+            </div>
+          )}
 
           {/* Load More */}
           <div className="text-center mt-12">

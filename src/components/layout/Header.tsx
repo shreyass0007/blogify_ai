@@ -1,13 +1,23 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { PenSquare, Menu, X } from "lucide-react";
+import { PenSquare, Menu, X, User, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+  const { user, isAuthenticated, logout } = useAuth();
+
   const isActive = (path: string) => location.pathname === path;
 
   const navLinks = [
@@ -15,6 +25,11 @@ const Header = () => {
     { path: "/blog", label: "Blog" },
     { path: "/pricing", label: "Pricing" },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <motion.header
@@ -41,11 +56,10 @@ const Header = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-sm font-medium transition-colors hover:text-accent ${
-                  isActive(link.path)
+                className={`text-sm font-medium transition-colors hover:text-accent ${isActive(link.path)
                     ? "text-foreground"
                     : "text-muted-foreground"
-                }`}
+                  }`}
               >
                 {link.label}
                 {isActive(link.path) && (
@@ -60,12 +74,45 @@ const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" asChild>
-              <Link to="/login">Sign in</Link>
-            </Button>
-            <Button variant="accent" asChild>
-              <Link to="/register">Start Writing</Link>
-            </Button>
+            {isAuthenticated && user ? (
+              <>
+                <Button variant="accent" asChild>
+                  <Link to="/dashboard">Dashboard</Link>
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+                        <User className="w-4 h-4 text-accent" />
+                      </div>
+                      <span className="max-w-[100px] truncate">{user.username}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard">Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/editor">New Post</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link to="/login">Sign in</Link>
+                </Button>
+                <Button variant="accent" asChild>
+                  <Link to="/register">Start Writing</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -94,23 +141,40 @@ const Header = () => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`text-sm font-medium transition-colors hover:text-accent px-2 py-1 ${
-                    isActive(link.path)
+                  className={`text-sm font-medium transition-colors hover:text-accent px-2 py-1 ${isActive(link.path)
                       ? "text-foreground"
                       : "text-muted-foreground"
-                  }`}
+                    }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {link.label}
                 </Link>
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t">
-                <Button variant="ghost" asChild>
-                  <Link to="/login">Sign in</Link>
-                </Button>
-                <Button variant="accent" asChild>
-                  <Link to="/register">Start Writing</Link>
-                </Button>
+                {isAuthenticated && user ? (
+                  <>
+                    <div className="flex items-center gap-2 px-2 py-1 text-sm">
+                      <User className="w-4 h-4" />
+                      <span>{user.username}</span>
+                    </div>
+                    <Button variant="accent" asChild>
+                      <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link>
+                    </Button>
+                    <Button variant="ghost" onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" asChild>
+                      <Link to="/login">Sign in</Link>
+                    </Button>
+                    <Button variant="accent" asChild>
+                      <Link to="/register">Start Writing</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </motion.div>
@@ -121,3 +185,4 @@ const Header = () => {
 };
 
 export default Header;
+

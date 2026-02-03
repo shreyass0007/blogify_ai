@@ -16,11 +16,11 @@ import {
   Heart,
   TrendingUp,
   Clock,
-  DollarSign,
-  Users,
-  Edit,
   Trash2,
   MoreVertical,
+  IndianRupee,
+  Users,
+  Edit,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,7 +33,7 @@ const mockStats = [
   { label: "Total Views", value: "0", change: "+0%", icon: Eye },
   { label: "Followers", value: "0", change: "+0%", icon: Users },
   { label: "Likes", value: "0", change: "+0%", icon: Heart },
-  { label: "Earnings", value: "$0", change: "+0%", icon: DollarSign },
+  { label: "Earnings", value: "₹0", change: "+0%", icon: IndianRupee },
 ];
 
 const sidebarItems = [

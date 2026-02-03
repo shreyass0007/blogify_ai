@@ -2,8 +2,10 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, Play } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const HeroSection = () => {
+  const { isAuthenticated } = useAuth();
   return (
     <section className="relative overflow-hidden bg-gradient-hero py-24 md:py-32">
       {/* Background decoration */}
@@ -59,7 +61,7 @@ const HeroSection = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg md:text-xl text-primary-foreground/70 mb-10 max-w-2xl mx-auto leading-relaxed"
           >
-            The AI-powered blogging platform that helps you write compelling content, 
+            The AI-powered blogging platform that helps you write compelling content,
             optimize for SEO, and monetize your expertise—all in one place.
           </motion.p>
 
@@ -71,8 +73,8 @@ const HeroSection = () => {
             className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
           >
             <Button variant="hero" size="xl" asChild>
-              <Link to="/register">
-                Start Writing Free
+              <Link to={isAuthenticated ? "/editor" : "/register"}>
+                {isAuthenticated ? "Start Writing" : "Start Writing Free"}
                 <ArrowRight className="w-5 h-5 ml-1" />
               </Link>
             </Button>

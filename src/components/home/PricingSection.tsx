@@ -23,7 +23,7 @@ const plans = [
   {
     name: "Pro",
     description: "For serious content creators",
-    price: "19",
+    price: "1550",
     period: "/month",
     features: [
       "Unlimited blog posts",
@@ -42,7 +42,7 @@ const plans = [
   {
     name: "Business",
     description: "For teams and publications",
-    price: "49",
+    price: "4000",
     period: "/month",
     features: [
       "Everything in Pro",
@@ -103,11 +103,10 @@ const PricingSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className={`relative rounded-2xl p-8 ${
-                plan.popular
+              className={`relative rounded-2xl p-8 ${plan.popular
                   ? "bg-primary text-primary-foreground shadow-xl scale-105"
                   : "bg-card border border-border"
-              }`}
+                }`}
             >
               {/* Popular badge */}
               {plan.popular && (
@@ -121,28 +120,24 @@ const PricingSection = () => {
 
               {/* Plan header */}
               <div className="mb-8">
-                <h3 className={`font-serif text-2xl font-bold mb-2 ${
-                  plan.popular ? "text-primary-foreground" : "text-foreground"
-                }`}>
+                <h3 className={`font-serif text-2xl font-bold mb-2 ${plan.popular ? "text-primary-foreground" : "text-foreground"
+                  }`}>
                   {plan.name}
                 </h3>
-                <p className={`text-sm ${
-                  plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"
-                }`}>
+                <p className={`text-sm ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"
+                  }`}>
                   {plan.description}
                 </p>
               </div>
 
               {/* Price */}
               <div className="mb-8">
-                <span className={`text-5xl font-bold ${
-                  plan.popular ? "text-primary-foreground" : "text-foreground"
-                }`}>
-                  ${plan.price}
+                <span className={`text-5xl font-bold ${plan.popular ? "text-primary-foreground" : "text-foreground"
+                  }`}>
+                  ₹{plan.price}
                 </span>
-                <span className={`text-sm ${
-                  plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"
-                }`}>
+                <span className={`text-sm ${plan.popular ? "text-primary-foreground/70" : "text-muted-foreground"
+                  }`}>
                   {plan.period}
                 </span>
               </div>
@@ -151,12 +146,10 @@ const PricingSection = () => {
               <ul className="space-y-4 mb-8">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
-                    <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-                      plan.popular ? "text-accent" : "text-accent"
-                    }`} />
-                    <span className={`text-sm ${
-                      plan.popular ? "text-primary-foreground/90" : "text-foreground"
-                    }`}>
+                    <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${plan.popular ? "text-accent" : "text-accent"
+                      }`} />
+                    <span className={`text-sm ${plan.popular ? "text-primary-foreground/90" : "text-foreground"
+                      }`}>
                       {feature}
                     </span>
                   </li>

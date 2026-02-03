@@ -72,20 +72,56 @@ const AIAssistantPanel = ({ onClose, onInsert, currentContent }: AIAssistantPane
     setIsGenerating(true);
     setGeneratedContent("");
 
-    // Simulate AI generation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Map tool IDs to API endpoints
+      const endpointMap: Record<string, string> = {
+        ideas: '/ai/ideas',
+        title: '/ai/title',
+        expand: '/ai/expand',
+        grammar: '/ai/grammar',
+        keywords: '/ai/keywords',
+        summarize: '/ai/summarize',
+      };
 
-    const mockResponses: Record<string, string> = {
-      ideas: `Here are some blog topic ideas based on your content:\n\n1. **The Future of Remote Work: Trends to Watch in 2024**\n2. **How AI is Transforming Content Creation**\n3. **Building a Personal Brand: From Zero to Expert**\n4. **The Ultimate Guide to Productivity for Writers**\n5. **Monetizing Your Expertise: Beyond Traditional Methods**`,
-      title: `Here are some title suggestions:\n\n1. "The Complete Guide to [Topic]: Everything You Need to Know"\n2. "Why [Topic] Is the Future of [Industry]"\n3. "10 Proven Strategies for [Desired Outcome]"\n4. "How I [Achievement] in [Timeframe]: A Step-by-Step Guide"\n5. "The Truth About [Topic] That Nobody Talks About"`,
-      expand: `Based on your content, here's an expanded section:\n\nContent creation has evolved dramatically in recent years, with AI-powered tools becoming indispensable for modern writers. These technologies don't replace human creativity—they enhance it. By handling routine tasks like grammar checking, keyword research, and content optimization, AI frees writers to focus on what they do best: crafting compelling narratives that resonate with readers.\n\nThe key is finding the right balance between human insight and machine efficiency. The most successful content creators leverage AI as a collaborative partner, using it to overcome writer's block, generate ideas, and polish their prose.`,
-      grammar: `Here are the grammar improvements for your text:\n\n✅ Fixed subject-verb agreements\n✅ Corrected punctuation errors\n✅ Improved sentence structure\n✅ Enhanced readability\n\nYour content is now polished and ready for publication!`,
-      keywords: `Recommended SEO keywords for your content:\n\n**Primary Keywords:**\n- AI writing assistant\n- Content creation tools\n- Blog optimization\n\n**Long-tail Keywords:**\n- How to use AI for blogging\n- Best AI writing tools 2024\n- Improve blog SEO with AI\n\n**Related Terms:**\n- Content marketing\n- Digital publishing\n- Writer productivity`,
-      summarize: `**Summary:**\n\nThis article explores the intersection of AI technology and content creation, highlighting how modern tools can enhance rather than replace human creativity. Key takeaways include the importance of balancing automation with authentic voice, leveraging AI for routine tasks, and maintaining focus on quality storytelling.`,
-    };
+      const endpoint = endpointMap[selectedTool];
+      if (!endpoint) {
+        throw new Error('Invalid tool selected');
+      }
 
-    setGeneratedContent(mockResponses[selectedTool] || "Generated content will appear here.");
-    setIsGenerating(false);
+      // Prepare request body based on tool type
+      const requestBody: Record<string, string> = { tone };
+
+      if (selectedTool === 'ideas' || selectedTool === 'title') {
+        requestBody.topic = prompt || currentContent.slice(0, 500) || 'general blog topics';
+      } else if (selectedTool === 'keywords') {
+        requestBody.content = currentContent || prompt;
+        requestBody.topic = prompt;
+        if (!requestBody.content && !requestBody.topic) {
+          throw new Error('Please write some content in the editor or add instructions for keywords.');
+        }
+      } else {
+        // expand, grammar, summarize need content
+        requestBody.content = currentContent || prompt;
+        if (!requestBody.content) {
+          throw new Error(`Please write some content in the editor first to use ${selectedTool}.`);
+        }
+      }
+
+      const { default: api } = await import('@/lib/api');
+      const { data } = await api.post(endpoint, requestBody);
+
+      setGeneratedContent(data.content);
+    } catch (error: any) {
+      console.error('AI Generation Error:', error);
+      toast({
+        title: "Generation Failed",
+        description: error.response?.data?.message || "Failed to generate content. Please try again.",
+        variant: "destructive",
+      });
+      setGeneratedContent("");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleCopy = () => {
@@ -127,15 +163,13 @@ const AIAssistantPanel = ({ onClose, onInsert, currentContent }: AIAssistantPane
               <button
                 key={tool.id}
                 onClick={() => setSelectedTool(tool.id)}
-                className={`p-3 rounded-lg border text-left transition-all ${
-                  selectedTool === tool.id
-                    ? "border-accent bg-accent/10"
-                    : "border-border hover:border-accent/50"
-                }`}
+                className={`p-3 rounded-lg border text-left transition-all ${selectedTool === tool.id
+                  ? "border-accent bg-accent/10"
+                  : "border-border hover:border-accent/50"
+                  }`}
               >
-                <tool.icon className={`w-5 h-5 mb-2 ${
-                  selectedTool === tool.id ? "text-accent" : "text-muted-foreground"
-                }`} />
+                <tool.icon className={`w-5 h-5 mb-2 ${selectedTool === tool.id ? "text-accent" : "text-muted-foreground"
+                  }`} />
                 <p className="font-medium text-sm">{tool.label}</p>
                 <p className="text-xs text-muted-foreground">{tool.description}</p>
               </button>
