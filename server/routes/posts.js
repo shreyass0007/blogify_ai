@@ -89,6 +89,9 @@ router.put('/:id', auth, async (req, res) => {
             return res.status(404).json({ message: 'Post not found' });
         }
 
+        const wasPublished = post.status === 'published';
+        const isNowPublished = status === 'published';
+
         post.title = title || post.title;
         post.content = content || post.content;
         post.tags = tags || post.tags;
@@ -96,8 +99,37 @@ router.put('/:id', auth, async (req, res) => {
         post.image = image !== undefined ? image : post.image;
 
         await post.save();
+
+        // Trigger notifications if post is newly published
+        if (!wasPublished && isNowPublished) {
+            const { Subscription } = require('../models/Subscription');
+            const { Notification } = require('../models/Notification');
+            const { User } = require('../models/User');
+
+            // Find all subscribers
+            const subscriptions = await Subscription.find({ author: req.user.userId });
+
+            // Get author info
+            const author = await User.findById(req.user.userId);
+
+            // Create notifications for all subscribers
+            const notificationPromises = subscriptions.map(subscription => {
+                return new Notification({
+                    recipient: subscription.subscriber,
+                    type: 'new_post',
+                    title: 'New Post Published',
+                    message: `${author.username} published a new post: "${post.title}"`,
+                    relatedPost: post._id,
+                    relatedAuthor: req.user.userId
+                }).save();
+            });
+
+            await Promise.all(notificationPromises);
+        }
+
         res.json(post);
     } catch (error) {
+        console.error('Update Post Error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 });

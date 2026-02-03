@@ -4,15 +4,16 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Eye, Heart, Calendar, User, Loader2 } from "lucide-react";
-import api from "@/lib/api";
+import { ArrowLeft, Clock, Eye, Heart, Calendar, User, Loader2, Users } from "lucide-react";
+import api, { subscriptionApi } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
+import { SubscribeButton } from "@/components/author/SubscribeButton";
 
 interface Post {
     _id: string;
     title: string;
     content: string;
-    author: { username: string } | string;
+    author: { _id: string; username: string } | string;
     createdAt: string;
     views: number;
     likes: number;
@@ -25,6 +26,7 @@ const BlogPost = () => {
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [subscriberCount, setSubscriberCount] = useState(0);
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -60,10 +62,29 @@ const BlogPost = () => {
         return author?.username || 'Unknown';
     };
 
+    const getAuthorId = (author: Post['author']) => {
+        if (typeof author === 'string') return author;
+        return author?._id || '';
+    };
+
     const formatNumber = (num: number) => {
         if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
         return num.toString();
     };
+
+    useEffect(() => {
+        const fetchSubscriberCount = async () => {
+            const authorId = post ? getAuthorId(post.author) : null;
+            if (!authorId) return;
+            try {
+                const response = await subscriptionApi.getCount(authorId);
+                setSubscriberCount(response.data.count);
+            } catch (error) {
+                console.error('Error fetching subscriber count:', error);
+            }
+        };
+        if (post) fetchSubscriberCount();
+    }, [post]);
 
     if (loading) {
         return (
@@ -127,14 +148,31 @@ const BlogPost = () => {
                             {post.title}
                         </h1>
 
-                        {/* Meta */}
-                        <div className="flex flex-wrap items-center gap-6 text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
-                                    <User className="w-5 h-5 text-accent" />
+                        {/* Author Info with Subscribe Button */}
+                        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-6 border-b border-border">
+                            <div className="flex flex-wrap items-center gap-6 text-muted-foreground">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
+                                        <User className="w-6 h-6 text-accent" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-foreground text-lg">{getAuthorName(post.author)}</p>
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Users className="w-3 h-3" />
+                                            <span>{formatNumber(subscriberCount)} subscriber{subscriberCount !== 1 ? 's' : ''}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="font-medium text-foreground">{getAuthorName(post.author)}</span>
                             </div>
+                            <SubscribeButton
+                                authorId={getAuthorId(post.author)}
+                                authorName={getAuthorName(post.author)}
+                                variant="default"
+                            />
+                        </div>
+
+                        {/* Post Meta */}
+                        <div className="flex flex-wrap items-center gap-6 text-muted-foreground mb-8">
                             <div className="flex items-center gap-2">
                                 <Calendar className="w-4 h-4" />
                                 <span>{formatDate(post.createdAt)}</span>

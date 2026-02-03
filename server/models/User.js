@@ -28,5 +28,25 @@ const userSchema = new mongoose.Schema({
     }
 });
 
+// Virtual for subscribers count
+userSchema.virtual('subscribersCount', {
+    ref: 'Subscription',
+    localField: '_id',
+    foreignField: 'author',
+    count: true
+});
+
+// Virtual for subscriptions count
+userSchema.virtual('subscriptionsCount', {
+    ref: 'Subscription',
+    localField: '_id',
+    foreignField: 'subscriber',
+    count: true
+});
+
+// Enable virtuals in JSON
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
+
 const User = mongoose.model('User', userSchema);
 module.exports = { User };

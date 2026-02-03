@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { PenSquare, Menu, X, User, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,8 +58,8 @@ const Header = () => {
                 key={link.path}
                 to={link.path}
                 className={`text-sm font-medium transition-colors hover:text-accent ${isActive(link.path)
-                    ? "text-foreground"
-                    : "text-muted-foreground"
+                  ? "text-foreground"
+                  : "text-muted-foreground"
                   }`}
               >
                 {link.label}
@@ -79,6 +80,7 @@ const Header = () => {
                 <Button variant="accent" asChild>
                   <Link to="/dashboard">Dashboard</Link>
                 </Button>
+                <NotificationBell />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-2">
@@ -142,8 +144,8 @@ const Header = () => {
                   key={link.path}
                   to={link.path}
                   className={`text-sm font-medium transition-colors hover:text-accent px-2 py-1 ${isActive(link.path)
-                      ? "text-foreground"
-                      : "text-muted-foreground"
+                    ? "text-foreground"
+                    : "text-muted-foreground"
                     }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
